@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🤖 AI Hub Sellers — Multimodal Telegram Mini App (TMA)
 
-## Getting Started
+Инновационное рабочее пространство для продавцов маркетплейсов (Wildberries / Ozon), разработанное в формате **Telegram Mini App**. Приложение объединяет в себе возможности мультимодального искусственного интеллекта для генерации контента и симуляцию сквозной автоматизации бизнес-процессов (выгрузка в API, синхронизация со складским учетом).
 
-First, run the development server:
+## 🚀 Основной функционал
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+*   **⚡ Мультимодальный ИИ-Оптимизатор карточек:** Полноценный модуль генерации SEO-контента. На основе загруженного изображения товара и метаданных ИИ анализирует контекст, подбирает релевантные поисковые теги, рассчитывает рекомендованную стоимость и генерирует продающее описание.
+*   **🧠 Умный автоответчик на отзывы:** Модуль автоматической обработки фидбека. ИИ анализирует тональность отзыва покупателя (Позитивный / Негативный / Нейтральный) по ключевым маркерам и мгновенно формирует дипломатичный, лояльный ответ от лица бренда.
+*   **💻 Интеграционный терминал (API Console):** Асинхронный логгер операций в реальном времени. Демонстрирует пошаговый процесс синхронизации данных с внешним миром через имитацию цепочки вебхуков и API-запросов (валидация токенов маркетплейсов, конвертация данных в JSON-пакеты, апдейт остатков на складе и выгрузка в 1С / CRM).
+
+## 🛠️ Технологический стек
+
+*   **Framework:** Next.js 14+ (App Router) & TypeScript
+*   **Styling:** Tailwind CSS (Кастомная UI-тема под нативный интерфейс Telegram Web Apps)
+*   **Animations:** Framer Motion (Плавные асинхронные лоадеры, динамический автоскролл строк терминала, микро-интерактивность кнопок при нажатии)
+*   **Icons:** Lucide React
+
+## 💎 UX/UI Особенности (Premium Design)
+
+*   **TMA-Native Палитра:** Интерфейс полностью адаптирован под визуальные стандарты Telegram Mini Apps (глубокие темные тона `#17212B` / `#0E1621` в сочетании с фирменным акцентным синим цветом `#2481CC`).
+*   **100% Mobile-First:** Дизайн изначально спроектирован под экраны смартфонов с идеальным тач-откликом (`active:scale-95`), но аккуратно центрируется на десктопных разрешениях.
+*   **Асинхронный UX:** Защита от повторных кликов (disabled-состояния) во время работы "ИИ" и процессов синхронизации данных, сопровождающаяся кастомными скелетонами загрузки.
+
+## 📦 Архитектура проекта
+
+```text
+├── app/
+│   ├── layout.tsx       # Глобальная разметка, шрифты и SEO-метаданные
+│   ├── page.tsx         # Главный экран AI-Хаба (композиция модулей)
+│   └── favicon.ico      # Кастомный брендированный фавикон платформы
+├── components/
+│   ├── CardGenerator.tsx # Модуль ИИ-анализа изображений и SEO-генерации
+│   ├── ReviewManager.tsx # Анализатор тональности отзывов и автоответчик
+│   └── IntegrationLog.tsx# Интерактивный терминал асинхронной API-выгрузки
+└── rules.md             # Строгий регламент качества кода и архитектуры
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Запуск проекта
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Открой [http://localhost:3000](http://localhost:3000) в браузере.
