@@ -4,7 +4,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, RefreshCw, CheckCircle2, Info, AlertCircle, Loader2 } from 'lucide-react';
 import type { TerminalLog } from '@/types';
-import { TERMINAL_STEPS } from '@/data/mock';
 
 const TYPE_CONFIG = {
   INFO: { color: '#6C7883', icon: Info },
@@ -18,7 +17,6 @@ export default function IntegrationTerminal() {
     { id: 0, type: 'INFO', message: 'Терминал готов. Ожидание команды...' },
   ]);
   const [syncing, setSyncing] = useState(false);
-  const [currentMarketplace, setCurrentMarketplace] = useState<'Ozon' | 'Wildberries'>('Ozon');
   const terminalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,31 +28,46 @@ export default function IntegrationTerminal() {
   const handleSync = useCallback(async () => {
     if (syncing) return;
     setSyncing(true);
-
-    const baseSteps = TERMINAL_STEPS.map((step, i) => ({
-      ...step,
-      message: step.message === 'Подключение к API маркетплейса...'
-        ? `Подключение к API ${currentMarketplace}...`
-        : step.message,
-      id: i + 1,
-    }));
-
     setLogs((prev) => [
       ...prev,
-      { id: Date.now(), type: 'INFO', message: `Запуск синхронизации с ${currentMarketplace}...` },
+      { id: Date.now(), type: 'INFO', message: 'Запуск синхронизации...' },
     ]);
 
-    for (const step of baseSteps) {
-      await new Promise((r) => setTimeout(r, 700 + Math.random() * 800));
-      setLogs((prev) => [...prev, step as TerminalLog]);
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketplace: 'ozon' }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Sync failed');
+      }
+
+      const { steps } = await res.json();
+
+      for (const step of steps) {
+        await new Promise((r) => setTimeout(r, 700 + Math.random() * 800));
+        setLogs((prev) => [
+          ...prev,
+          { id: Date.now() + Math.random(), type: step.type, message: step.message },
+        ]);
+      }
+
+      setLogs((prev) => [
+        ...prev,
+        { id: Date.now() + 999, type: 'SUCCESS', message: '✓ Синхронизация завершена.' },
+      ]);
+    } catch (e) {
+      setLogs((prev) => [
+        ...prev,
+        { id: Date.now() + 1, type: 'ERROR', message: `Ошибка: ${e instanceof Error ? e.message : 'Unknown'}` },
+      ]);
+    } finally {
+      setSyncing(false);
     }
-
-    setLogs((prev) => [
-      ...prev,
-      { id: Date.now() + 999, type: 'SUCCESS', message: '✓ Синхронизация завершена успешно.' },
-    ]);
-    setSyncing(false);
-  }, [syncing, currentMarketplace]);
+  }, [syncing]);
 
   const handleClear = () => {
     setLogs([
