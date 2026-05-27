@@ -53,7 +53,7 @@ function httpsRequest(url: string, body: object): Promise<any> {
   });
 }
 
-async function geminiFetch(prompt: string): Promise<string> {
+async function geminiFetch(systemPrompt: string, userPrompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
@@ -64,12 +64,13 @@ async function geminiFetch(prompt: string): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const { status, body } = await httpsRequest(url, {
-    contents: [{ parts: [{ text: prompt }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ parts: [{ text: userPrompt }] }],
     generationConfig: {
       temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 2048,
     },
   });
 
@@ -86,6 +87,28 @@ async function geminiFetch(prompt: string): Promise<string> {
 
   return text.trim();
 }
+
+const SYSTEM_PROMPT_WB = `Ты — эксперт по SEO-оптимизации карточек товаров для Wildberries.
+Проанализируй товар по названию и категории. Верни СТРОГО только JSON без пояснений в формате:
+
+{
+  "seoTitle": "Заголовок до 60 символов, без спама и дублирования слов, строгий минимализм",
+  "seoDescription": "Оптимизированное описание до 3000 символов. Вплети популярные поисковые запросы и синонимы (например: свитер, джемпер, пуловер, кофта) органично в читаемый текст. Избегай спама ключей через запятую.",
+  "infographicsTriggers": ["Триггер 1 для обложки (макс 25 символов)", "Триггер 2", "Триггер 3"],
+  "marketingTips": "Советы по улучшению продаж на Wildberries",
+  "recommendedPrice": число (целое, без копеек, в рублях — строго в пределах указанного диапазона)
+}`;
+
+const SYSTEM_PROMPT_OZON = `Ты — эксперт по SEO-оптимизации карточек товаров для Ozon.
+Проанализируй товар по названию и категории. Верни СТРОГО только JSON без пояснений в формате:
+
+{
+  "seoTitle": "Длинное богатое наименование по формуле (Тип + Бренд + Особенности) до 200 символов",
+  "seoDescription": "Маркетинговое описание для покупателя до 3000 символов. Упор на выгоды, преимущества и коммерческие аргументы. Для SEO на Ozon важнее характеристики и Rich-контент, а не текст.",
+  "infographicsTriggers": ["Триггер 1 для обложки (макс 25 символов)", "Триггер 2", "Триггер 3"],
+  "marketingTips": "Советы по улучшению продаж на Ozon",
+  "recommendedPrice": число (целое, без копеек, в рублях — строго в пределах указанного диапазона)
+}`;
 
 const PRICE_RANGES: Record<string, Record<string, { min: number; max: number }>> = {
   ozon: {
@@ -118,30 +141,21 @@ export async function generateCardSEO(params: {
   name: string;
   category: string;
   marketplace: string;
-}): Promise<{ description: string; tags: string[]; recommendedPrice: number }> {
+}): Promise<{
+  seoTitle: string;
+  seoDescription: string;
+  infographicsTriggers: string[];
+  marketingTips: string;
+  recommendedPrice: number;
+}> {
+  const systemPrompt = params.marketplace === 'wildberries' ? SYSTEM_PROMPT_WB : SYSTEM_PROMPT_OZON;
   const range = PRICE_RANGES[params.marketplace]?.[params.category];
-  const priceGuide = range
-    ? `Ценовой диапазон для категории "${params.category}" на ${params.marketplace}: от ${range.min} до ${range.max} ₽. Выбери конкретную цену в этом диапазоне, соответствующую товару.`
-    : '';
 
-  const prompt = `Ты — AI-копирайтер для маркетплейсов. Сгенерируй SEO-контент и определи цену для карточки товара.
+  const userPrompt = range
+    ? `Товар: ${params.name}\nКатегория: ${params.category}\nМаркетплейс: ${params.marketplace}\n\nЦеновой диапазон для этой категории: от ${range.min} до ${range.max} ₽. Выбери конкретную цену в этом диапазоне, соответствующую товару.`
+    : `Товар: ${params.name}\nКатегория: ${params.category}\nМаркетплейс: ${params.marketplace}\n\nОпредели цену самостоятельно.`;
 
-Товар: ${params.name}
-Категория: ${params.category}
-Маркетплейс: ${params.marketplace}
-
-${priceGuide}
-
-Ответ должен быть строго в формате JSON без markdown-разметки:
-{
-  "description": "SEO-описание (3-5 предложений, без эмодзи, для маркетплейса ${params.marketplace})",
-  "tags": ["тег1", "тег2", "тег3", "тег4", "тег5"],
-  "recommendedPrice": число (целое, без копеек, в рублях)
-}
-
-Верни только JSON, никакого другого текста.`;
-
-  const raw = await geminiFetch(prompt);
+  const raw = await geminiFetch(systemPrompt, userPrompt);
   return JSON.parse(raw);
 }
 
@@ -149,9 +163,9 @@ export async function analyzeReview(text: string): Promise<{
   sentiment: 'positive' | 'negative' | 'neutral';
   suggestedReply: string;
 }> {
-  const prompt = `Ты — AI-ассистент для работы с отзывами на маркетплейсах. Проанализируй отзыв покупателя и предложи ответ продавца.
+  const systemPrompt = 'Ты — ассистент для работы с отзывами на маркетплейсах. Анализируй тональность и предлагай ответ продавца.';
 
-Отзыв: "${text}"
+  const userPrompt = `Отзыв: "${text}"
 
 Ответ должен быть строго в формате JSON без markdown-разметки:
 {
@@ -161,32 +175,6 @@ export async function analyzeReview(text: string): Promise<{
 
 Верни только JSON, никакого другого текста.`;
 
-  const raw = await geminiFetch(prompt);
+  const raw = await geminiFetch(systemPrompt, userPrompt);
   return JSON.parse(raw);
-}
-
-export async function getRecommendedPrice(productName: string, category: string, marketplace: string): Promise<number> {
-  const range = PRICE_RANGES[marketplace]?.[category];
-  const priceGuide = range
-    ? `Ценовой диапазон для категории "${category}" на ${marketplace}: от ${range.min} до ${range.max} ₽.`
-    : '';
-
-  const prompt = `Ты — аналитик цен на маркетплейсах. Определи рекомендуемую цену в рублях.
-
-Товар: ${productName}
-Категория: ${category}
-Маркетплейс: ${marketplace}
-
-${priceGuide}
-
-Ответ должен быть строго в формате JSON без markdown-разметки:
-{
-  "price": число (целое, без копеек, в рублях — строго в пределах диапазона)
-}
-
-Верни только JSON, никакого другого текста.`;
-
-  const raw = await geminiFetch(prompt);
-  const data = JSON.parse(raw);
-  return data.price;
 }

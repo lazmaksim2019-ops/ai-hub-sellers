@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Hash, DollarSign, Bot } from 'lucide-react';
+import { Sparkles, Hash, DollarSign, Bot, Lightbulb, ImageIcon } from 'lucide-react';
 import type { Marketplace, SEOGenerationResult } from '@/types';
 import ImageUploader from './ImageUploader';
 
@@ -18,10 +18,15 @@ const CATEGORIES = [
 
 const STEPS = [
   'ИИ анализирует товар...',
-  'Генерация SEO-описания...',
-  'Подбор тегов...',
+  'Генерация SEO-контента...',
+  'Подбор триггеров...',
   'Анализ цен...',
 ];
+
+const MARKETPLACE_LABEL: Record<Marketplace, string> = {
+  ozon: 'Ozon',
+  wildberries: 'Wildberries',
+};
 
 export default function CardGenerator({ marketplace }: CardGeneratorProps) {
   const [image, setImage] = useState<File | null>(null);
@@ -73,7 +78,7 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
         </div>
         <div>
           <h2 className="text-sm font-semibold text-white">Генератор карточек</h2>
-          <p className="text-[10px] text-tma-muted">AI-оптимизация товаров для {marketplace === 'ozon' ? 'Ozon' : 'Wildberries'}</p>
+          <p className="text-[10px] text-tma-muted">SEO-оптимизация для {MARKETPLACE_LABEL[marketplace]}</p>
         </div>
       </div>
 
@@ -147,22 +152,42 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
                 <div className="flex items-center gap-1.5 mb-2">
                   <Bot size={13} className="text-tma-accent" />
                   <span className="text-[10px] font-medium text-tma-accent uppercase tracking-wider">
+                    SEO-заголовок
+                  </span>
+                </div>
+                <p className="text-sm text-white/90 font-mono leading-relaxed">{result.seoTitle}</p>
+              </div>
+
+              <div className="bg-tma-secondary-bg border border-tma-border rounded-xl p-3.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Bot size={13} className="text-tma-accent" />
+                  <span className="text-[10px] font-medium text-tma-accent uppercase tracking-wider">
                     SEO-описание
                   </span>
                 </div>
-                <p className="text-sm text-white/90 leading-relaxed">{result.description}</p>
+                <p className="text-sm text-white/90 leading-relaxed">{result.seoDescription}</p>
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                {result.tags.map((tag) => (
+                {result.infographicsTriggers.map((trigger) => (
                   <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tma-accent/10 border border-tma-accent/20 text-[11px] font-medium text-tma-accent"
+                    key={trigger}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-tma-accent/10 to-purple-500/10 border border-tma-accent/20 text-[11px] font-medium text-tma-accent"
                   >
                     <Hash size={10} />
-                    {tag}
+                    {trigger}
                   </span>
                 ))}
+              </div>
+
+              <div className="bg-tma-secondary-bg border border-tma-border rounded-xl p-3.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Lightbulb size={13} className="text-yellow-400" />
+                  <span className="text-[10px] font-medium text-yellow-400 uppercase tracking-wider">
+                    Маркетинговые советы
+                  </span>
+                </div>
+                <p className="text-sm text-white/90 leading-relaxed">{result.marketingTips}</p>
               </div>
 
               <div className="bg-gradient-to-r from-tma-accent/5 to-blue-500/5 border border-tma-accent/20 rounded-xl p-3.5 flex items-center justify-between">
@@ -177,7 +202,7 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
 
               <button
                 onClick={() => {
-                  const text = `SEO-описание:\n${result.description}\n\nТеги: ${result.tags.join(', ')}\n\nРекомендованная цена: ${result.recommendedPrice} ₽`;
+                  const text = `SEO-заголовок:\n${result.seoTitle}\n\nSEO-описание:\n${result.seoDescription}\n\nТриггеры: ${result.infographicsTriggers.join(', ')}\n\nСоветы: ${result.marketingTips}\n\nЦена: ${result.recommendedPrice} ₽`;
                   navigator.clipboard.writeText(text);
                 }}
                 className="w-full py-2 rounded-lg border border-tma-border text-[11px] font-medium text-tma-muted hover:text-white hover:bg-tma-border/30 transition-all"

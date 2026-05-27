@@ -3,8 +3,10 @@ export type Marketplace = 'ozon' | 'wildberries';
 export type Sentiment = 'positive' | 'negative' | 'neutral';
 
 export interface SEOGenerationResult {
-  description: string;
-  tags: string[];
+  seoTitle: string;
+  seoDescription: string;
+  infographicsTriggers: string[];
+  marketingTips: string;
   recommendedPrice: number;
 }
 
