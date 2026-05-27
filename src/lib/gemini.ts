@@ -1,3 +1,4 @@
+import https from 'https';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 function getAgent() {
@@ -13,6 +14,45 @@ function getAgent() {
   return undefined;
 }
 
+function httpsRequest(url: string, body: object): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const agent = getAgent();
+    const u = new URL(url);
+
+    const options: https.RequestOptions = {
+      hostname: u.hostname,
+      port: 443,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(JSON.stringify(body)),
+      },
+    };
+
+    if (agent) {
+      options.agent = agent;
+    }
+
+    const req = https.request(options, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => {
+        const data = Buffer.concat(chunks).toString();
+        try {
+          resolve({ status: res.statusCode, body: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, body: data });
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
 async function geminiFetch(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
@@ -23,30 +63,22 @@ async function geminiFetch(prompt: string): Promise<string> {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const agent = getAgent();
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    ...(agent ? { agent } : {}),
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      },
-    }),
+  const { status, body } = await httpsRequest(url, {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,
+    },
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini API error (${res.status}): ${err}`);
+  if (status !== 200) {
+    const msg = typeof body === 'object' ? JSON.stringify(body) : body;
+    throw new Error(`Gemini API error (${status}): ${msg}`);
   }
 
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
     throw new Error('Gemini returned empty response');
