@@ -4,41 +4,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Bot, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
 import type { Sentiment, ReviewAnalysisResult } from '@/types';
-import { getRandomReply } from '@/data/mock';
 
 const SENTIMENT_CONFIG: Record<Sentiment, { label: string; icon: typeof ThumbsUp; color: string }> = {
   positive: { label: 'Позитивный', icon: ThumbsUp, color: '#4CAF50' },
   negative: { label: 'Негативный', icon: ThumbsDown, color: '#F44336' },
   neutral: { label: 'Нейтральный', icon: Minus, color: '#FF9800' },
 };
-
-function detectSentiment(text: string): Sentiment {
-  const posWords = ['отлично', 'супер', 'класс', 'спасибо', 'рекомендую', 'качественно', 'быстро', 'доволен', 'превосходно', 'нравится', 'хороший', 'отличный', 'красивый', 'удобный', 'замечательно'];
-  const negWords = ['ужас', 'плохо', 'брак', 'сломал', 'не работает', 'обман', 'возврат', 'не качественно', 'разочарован', 'не подошёл', 'не советую', 'ужасный', 'плохой', 'грубый', 'долго', 'не очень', 'завышена', 'ужасно', 'не ожидал', 'не понравился', 'не подходит', 'развод'];
-
-  const lower = text.toLowerCase();
-  let posScore = 0;
-  let negScore = 0;
-
-  posWords.forEach((w) => {
-    if (lower.includes(w)) posScore++;
-  });
-  negWords.forEach((w) => {
-    if (lower.includes(w)) negScore++;
-  });
-
-  if (posScore > negScore) return 'positive';
-  if (negScore > posScore) return 'negative';
-  return 'neutral';
-}
-
-function analyzeReview(text: string): ReviewAnalysisResult {
-  const sentiment = detectSentiment(text);
-  return {
-    sentiment,
-    suggestedReply: getRandomReply(sentiment),
-  };
-}
 
 export default function SmartResponder() {
   const [reviewText, setReviewText] = useState('');
@@ -50,11 +21,25 @@ export default function SmartResponder() {
     setLoading(true);
     setResult(null);
 
-    await new Promise((r) => setTimeout(r, 1800));
+    try {
+      const res = await fetch('/api/analyze-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: reviewText.trim() }),
+      });
 
-    const analysis = analyzeReview(reviewText);
-    setResult(analysis);
-    setLoading(false);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Analysis failed');
+      }
+
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      alert('Ошибка анализа: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const SentimentIcon = result ? SENTIMENT_CONFIG[result.sentiment].icon : null;

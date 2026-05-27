@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Hash, Tag, DollarSign, Bot } from 'lucide-react';
+import { Sparkles, Hash, DollarSign, Bot } from 'lucide-react';
 import type { Marketplace, SEOGenerationResult } from '@/types';
-import { GENERATION_STEPS, getRandomTags, getRandomPrice, getRandomDescription } from '@/data/mock';
 import ImageUploader from './ImageUploader';
 
 interface CardGeneratorProps {
@@ -15,6 +14,13 @@ const CATEGORIES = [
   'Электроника', 'Одежда и аксессуары', 'Товары для дома',
   'Красота и здоровье', 'Спорт и фитнес', 'Детские товары',
   'Автотовары', 'Зоотовары', 'Продукты питания', 'Канцелярия',
+];
+
+const STEPS = [
+  'ИИ анализирует товар...',
+  'Генерация SEO-описания...',
+  'Подбор тегов...',
+  'Анализ цен...',
 ];
 
 export default function CardGenerator({ marketplace }: CardGeneratorProps) {
@@ -29,19 +35,32 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
     if (!name.trim() || !category) return;
     setLoading(true);
     setResult(null);
-    setCurrentStep(0);
 
-    for (let i = 0; i < GENERATION_STEPS.length; i++) {
-      setCurrentStep(i);
-      await new Promise((r) => setTimeout(r, GENERATION_STEPS[i].duration));
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev));
+    }, 1500);
+
+    try {
+      const res = await fetch('/api/generate-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), category, marketplace }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Generation failed');
+      }
+
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      alert('Ошибка генерации: ' + (e instanceof Error ? e.message : 'Unknown error'));
+    } finally {
+      clearInterval(stepInterval);
+      setLoading(false);
+      setCurrentStep(0);
     }
-
-    setResult({
-      description: getRandomDescription(marketplace),
-      tags: getRandomTags(6),
-      recommendedPrice: getRandomPrice(marketplace),
-    });
-    setLoading(false);
   };
 
   const canGenerate = name.trim() && category;
@@ -105,7 +124,7 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
                 <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-pulse-dot" />
                 <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-pulse-dot" />
               </div>
-              <span className="text-xs">{GENERATION_STEPS[currentStep]?.label}</span>
+              <span className="text-xs">{STEPS[currentStep]}</span>
             </>
           ) : (
             <>
