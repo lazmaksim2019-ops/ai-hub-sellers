@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateCardSEO, getRecommendedPrice } from '@/lib/gemini';
+import { generateCardSEO } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
@@ -13,16 +13,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const [seo, price] = await Promise.all([
-      generateCardSEO({ name, category, marketplace }),
-      getRecommendedPrice(name, category, marketplace),
-    ]);
+    const result = await generateCardSEO({ name, category, marketplace });
 
-    return NextResponse.json({
-      description: seo.description,
-      tags: seo.tags,
-      recommendedPrice: price,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Generate card error:', message);

@@ -87,21 +87,56 @@ async function geminiFetch(prompt: string): Promise<string> {
   return text.trim();
 }
 
+const PRICE_RANGES: Record<string, Record<string, { min: number; max: number }>> = {
+  ozon: {
+    'Электроника': { min: 500, max: 150000 },
+    'Одежда и аксессуары': { min: 300, max: 30000 },
+    'Товары для дома': { min: 200, max: 15000 },
+    'Красота и здоровье': { min: 150, max: 10000 },
+    'Спорт и фитнес': { min: 300, max: 50000 },
+    'Детские товары': { min: 200, max: 20000 },
+    'Автотовары': { min: 200, max: 30000 },
+    'Зоотовары': { min: 150, max: 15000 },
+    'Продукты питания': { min: 50, max: 5000 },
+    'Канцелярия': { min: 50, max: 5000 },
+  },
+  wildberries: {
+    'Электроника': { min: 300, max: 100000 },
+    'Одежда и аксессуары': { min: 200, max: 15000 },
+    'Товары для дома': { min: 150, max: 10000 },
+    'Красота и здоровье': { min: 100, max: 8000 },
+    'Спорт и фитнес': { min: 200, max: 30000 },
+    'Детские товары': { min: 150, max: 15000 },
+    'Автотовары': { min: 150, max: 20000 },
+    'Зоотовары': { min: 100, max: 10000 },
+    'Продукты питания': { min: 30, max: 3000 },
+    'Канцелярия': { min: 30, max: 3000 },
+  },
+};
+
 export async function generateCardSEO(params: {
   name: string;
   category: string;
   marketplace: string;
-}): Promise<{ description: string; tags: string[] }> {
-  const prompt = `Ты — AI-копирайтер для маркетплейсов. Сгенерируй SEO-контент для карточки товара.
+}): Promise<{ description: string; tags: string[]; recommendedPrice: number }> {
+  const range = PRICE_RANGES[params.marketplace]?.[params.category];
+  const priceGuide = range
+    ? `Ценовой диапазон для категории "${params.category}" на ${params.marketplace}: от ${range.min} до ${range.max} ₽. Выбери конкретную цену в этом диапазоне, соответствующую товару.`
+    : '';
+
+  const prompt = `Ты — AI-копирайтер для маркетплейсов. Сгенерируй SEO-контент и определи цену для карточки товара.
 
 Товар: ${params.name}
 Категория: ${params.category}
 Маркетплейс: ${params.marketplace}
 
+${priceGuide}
+
 Ответ должен быть строго в формате JSON без markdown-разметки:
 {
   "description": "SEO-описание (3-5 предложений, без эмодзи, для маркетплейса ${params.marketplace})",
-  "tags": ["тег1", "тег2", "тег3", "тег4", "тег5"]
+  "tags": ["тег1", "тег2", "тег3", "тег4", "тег5"],
+  "recommendedPrice": число (целое, без копеек, в рублях)
 }
 
 Верни только JSON, никакого другого текста.`;
@@ -131,15 +166,22 @@ export async function analyzeReview(text: string): Promise<{
 }
 
 export async function getRecommendedPrice(productName: string, category: string, marketplace: string): Promise<number> {
-  const prompt = `Ты — аналитик цен на маркетплейсах. На основе названия товара, категории и маркетплейса определи рекомендуемую цену в рублях.
+  const range = PRICE_RANGES[marketplace]?.[category];
+  const priceGuide = range
+    ? `Ценовой диапазон для категории "${category}" на ${marketplace}: от ${range.min} до ${range.max} ₽.`
+    : '';
+
+  const prompt = `Ты — аналитик цен на маркетплейсах. Определи рекомендуемую цену в рублях.
 
 Товар: ${productName}
 Категория: ${category}
 Маркетплейс: ${marketplace}
 
+${priceGuide}
+
 Ответ должен быть строго в формате JSON без markdown-разметки:
 {
-  "price": число (только цифры, без форматирования)
+  "price": число (целое, без копеек, в рублях — строго в пределах диапазона)
 }
 
 Верни только JSON, никакого другого текста.`;
