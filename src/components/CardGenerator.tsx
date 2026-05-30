@@ -139,6 +139,20 @@ export default function CardGenerator({ marketplace }: CardGeneratorProps) {
           )}
         </button>
 
+        {loading && (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-tma-secondary-bg border border-tma-border rounded-xl p-3.5">
+                <div className="w-24 h-3 bg-white/5 rounded animate-pulse mb-3" />
+                <div className="space-y-2">
+                  <div className="w-full h-3 bg-white/5 rounded animate-pulse" />
+                  <div className="w-3/4 h-3 bg-white/5 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <AnimatePresence>
           {result && (
             <motion.div

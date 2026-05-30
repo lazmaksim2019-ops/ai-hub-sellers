@@ -37,7 +37,15 @@ export default function RootLayout({
       lang="ru"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-tma-bg">
+        {children}
+        <footer className="text-center py-3 px-4">
+          <p className="text-[10px] text-tma-muted/50">
+            {process.env.GEMINI_API_KEY ? '🔒' : '🔄'} Данные обрабатываются безопасно.
+            {process.env.GEMINI_API_KEY ? '' : ' Демо-режим — данные не отправляются во внешние AI-сервисы.'}
+          </p>
+        </footer>
+      </body>
     </html>
   );
 }

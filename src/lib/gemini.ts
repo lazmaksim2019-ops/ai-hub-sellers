@@ -1,5 +1,7 @@
 import https from 'https';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import type { Marketplace, Sentiment } from '@/types';
+import { getRandomDescription, getRandomTags, getRandomPrice, getRandomReply } from '@/data/mock';
 
 function getAgent() {
   const host = process.env.PROXY_HOST;
@@ -148,6 +150,18 @@ export async function generateCardSEO(params: {
   marketingTips: string;
   recommendedPrice: number;
 }> {
+  if (!process.env.GEMINI_API_KEY) {
+    const mp = params.marketplace as Marketplace;
+    const demoTitle = `${params.name} — ${params.category === 'Электроника' ? 'лучшее предложение' : 'премиум-качество'} по лучшей цене`;
+    return {
+      seoTitle: demoTitle.slice(0, 60),
+      seoDescription: getRandomDescription(mp),
+      infographicsTriggers: getRandomTags(3),
+      marketingTips: 'Используйте качественные фотографии с разных ракурсов. Добавьте видео-обзор. Участвуйте в акциях маркетплейса для повышения видимости.',
+      recommendedPrice: getRandomPrice(mp),
+    };
+  }
+
   const systemPrompt = params.marketplace === 'wildberries' ? SYSTEM_PROMPT_WB : SYSTEM_PROMPT_OZON;
   const range = PRICE_RANGES[params.marketplace]?.[params.category];
 
@@ -163,6 +177,15 @@ export async function analyzeReview(text: string): Promise<{
   sentiment: 'positive' | 'negative' | 'neutral';
   suggestedReply: string;
 }> {
+  if (!process.env.GEMINI_API_KEY) {
+    const sentiments: Sentiment[] = ['positive', 'negative', 'neutral'];
+    const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+    return {
+      sentiment,
+      suggestedReply: getRandomReply(sentiment),
+    };
+  }
+
   const systemPrompt = 'Ты — ассистент для работы с отзывами на маркетплейсах. Анализируй тональность и предлагай ответ продавца.';
 
   const userPrompt = `Отзыв: "${text}"
